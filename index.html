@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AR Menu — Suno Safar</title>
+
+  <!-- model-viewer for easy Web AR / Scene Viewer / Quick Look -->
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+  <style>
+    :root{--accent:#ff6b35;--card:#ffffffcc;--glass:rgba(255,255,255,0.12)}
+    html,body{height:100%;margin:0;font-family:Inter, system-ui, Arial, sans-serif;background:linear-gradient(180deg,#f8f7fb,#fff)}
+    .app{max-width:980px;margin:18px auto;padding:14px}
+
+    header{display:flex;align-items:center;gap:12px}
+    .logo{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,#ff9a6b,#ff6b35);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:22px}
+    h1{font-size:18px;margin:0}
+    p.lead{margin:4px 0 14px;color:#333}
+
+    .viewer-wrap{background:var(--card);border-radius:14px;box-shadow:0 10px 30px rgba(20,20,30,0.06);overflow:hidden}
+    model-viewer{width:100%;height:64vh;min-height:420px;background:#eee}
+
+    .controls{display:flex;align-items:center;justify-content:space-between;padding:12px}
+    .thumbs{display:flex;gap:8px;align-items:center}
+    .thumb{width:64px;height:64px;border-radius:8px;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.08);cursor:pointer;border:2px solid transparent}
+    .thumb img{width:100%;height:100%;object-fit:cover}
+    .thumb.active{border-color:var(--accent)}
+
+    .info{padding:12px;border-top:1px solid #eee;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .meta{flex:1}
+    .meta h2{margin:0;font-size:16px}
+    .meta p{margin:6px 0;color:#555}
+    .price{font-weight:700;color:var(--accent);font-size:18px}
+
+    .actions{display:flex;gap:8px;align-items:center}
+    .btn{background:var(--accent);color:white;padding:8px 12px;border-radius:10px;border:none;cursor:pointer;font-weight:600}
+    .btn.secondary{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+
+    .hint{font-size:13px;color:#666;margin-top:10px}
+
+    /* mobile tweaks */
+    @media (max-width:700px){model-viewer{height:56vh;min-height:340px}.thumb{width:56px;height:56px}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="logo">SS</div>
+      <div>
+        <h1>AR Menu — Suno Safar</h1>
+        <p class="lead">QR scan karke mobile browser se dishes ko apne table par place karo. Tap "AR" for placement (Android/iOS supported).</p>
+      </div>
+    </header>
+
+    <div class="viewer-wrap" id="viewerWrap">
+      <!-- model-viewer element. Replace src with your .glb path. Add ios-src if needed for USDZ -->
+      <model-viewer id="mv" src="assets/burger.glb" alt="Classic Burger" ar ar-modes="webxr scene-viewer quick-look" camera-controls auto-rotate environment-image="neutral" exposure="1" shadow-intensity="1"></model-viewer>
+
+      <div class="controls">
+        <div class="thumbs" id="thumbs">
+          <div class="thumb active" data-src="assets/burger.glb" data-title="Classic Cheeseburger" data-price="₹199" data-desc="Juicy patty, melted cheese, fresh lettuce." aria-label="burger">
+            <img src="thumbs/burger.jpg" alt="Burger thumb">
+          </div>
+          <div class="thumb" data-src="assets/pizza.glb" data-title="Margherita Pizza" data-price="₹299" data-desc="Wood-fired, basil, mozzarella." aria-label="pizza">
+            <img src="thumbs/pizza.jpg" alt="Pizza thumb">
+          </div>
+          <div class="thumb" data-src="assets/cola.glb" data-title="Cold Cola" data-price="₹79" data-desc="Chilled, bubbly—perfect with meals." aria-label="cola">
+            <img src="thumbs/cola.jpg" alt="Cola thumb">
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="placeBtn" class="btn">Place on table (AR)</button>
+          <button id="rotateBtn" class="btn secondary">Rotate</button>
+        </div>
+      </div>
+
+      <div class="info">
+        <div class="meta">
+          <h2 id="dishTitle">🍔 Classic Cheeseburger</h2>
+          <p id="dishDesc">Juicy patty, melted cheese, fresh lettuce.</p>
+        </div>
+        <div style="text-align:right">
+          <div class="price" id="dishPrice">₹199</div>
+          <div style="height:6px"></div>
+          <button id="orderBtn" class="btn">Add to cart</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="hint">Tip: Use mobile for AR placement. On desktop you'll still see an interactive 3D preview. To host: put your .glb files in a `models/` folder and thumbnails in `thumbs/`.</p>
+  </div>
+
+  <script>
+    // Basic menu logic: switch models, update UI
+    const thumbs = document.getElementById('thumbs');
+    const mv = document.getElementById('mv');
+    const title = document.getElementById('dishTitle');
+    const desc = document.getElementById('dishDesc');
+    const price = document.getElementById('dishPrice');
+    const orderBtn = document.getElementById('orderBtn');
+    const rotateBtn = document.getElementById('rotateBtn');
+    const placeBtn = document.getElementById('placeBtn');
+
+    let autoRotate = true;
+
+    thumbs.addEventListener('click', (e)=>{
+      const el = e.target.closest('.thumb');
+      if(!el) return;
+      document.querySelectorAll('.thumb').forEach(t=>t.classList.remove('active'));
+      el.classList.add('active');
+      const src = el.getAttribute('data-src');
+      const t = el.getAttribute('data-title');
+      const p = el.getAttribute('data-price');
+      const d = el.getAttribute('data-desc');
+
+      // swap model (browser will fetch the glb)
+      mv.pause();
+      mv.src = src;
+      mv.alt = t;
+      title.textContent = `${t}`;
+      desc.textContent = d;
+      price.textContent = p;
+
+      // ensure auto-rotate restarts
+      if(autoRotate){
+        mv.setAttribute('auto-rotate','');
+      }
+    });
+
+    rotateBtn.addEventListener('click', ()=>{
+      autoRotate = !autoRotate;
+      if(autoRotate){
+        mv.setAttribute('auto-rotate','');
+        rotateBtn.textContent = 'Rotate';
+      } else {
+        mv.removeAttribute('auto-rotate');
+        rotateBtn.textContent = 'Stop';
+      }
+    });
+
+    // Place on table button triggers AR prompt where supported
+    placeBtn.addEventListener('click', async ()=>{
+      // model-viewer exposes showPoster or enterAR depending on build; use click on AR button
+      // This is a friendly attempt — on many devices, model-viewer displays its own AR affordance.
+      try{
+        // try to open native AR (scene-viewer / quick-look)
+        mv.enterAR();
+      }catch(err){
+        alert('AR placement unsupported on this device/browser. Open on a modern mobile browser (Chrome on Android or Safari on iOS).');
+      }
+    });
+
+    // Simple order button behaviour (local cart example)
+    orderBtn.addEventListener('click', ()=>{
+      const item = {title: title.textContent, price: price.textContent};
+      // naive cart in localStorage
+      const cart = JSON.parse(localStorage.getItem('ar_menu_cart')||'[]');
+      cart.push(item);
+      localStorage.setItem('ar_menu_cart', JSON.stringify(cart));
+      alert(item.title + ' added to cart. Total items: ' + cart.length);
+    });
+
+    // keyboard shortcuts for desktop testing
+    window.addEventListener('keydown',(e)=>{
+      if(e.key==="ArrowLeft"){ document.querySelectorAll('.thumb')[Math.max(0,[...document.querySelectorAll('.thumb')].findIndex(t=>t.classList.contains('active'))-1,0)].click(); }
+      if(e.key==="ArrowRight"){ const thumbsArr=[...document.querySelectorAll('.thumb')]; const idx=thumbsArr.findIndex(t=>t.classList.contains('active')); thumbsArr[Math.min(idx+1,thumbsArr.length-1)].click(); }
+    });
+  </script>
+</body>
+</html>
