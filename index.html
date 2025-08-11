@@ -55,7 +55,19 @@
 
     <div class="viewer-wrap" id="viewerWrap">
       <!-- model-viewer element. Replace src with your .glb path. Add ios-src if needed for USDZ -->
-      <model-viewer id="mv" src="assets/burger_tripo-v2.glb" alt="Classic Burger" ar ar-modes="webxr scene-viewer quick-look" camera-controls auto-rotate environment-image="neutral" exposure="1" shadow-intensity="1"></model-viewer>
+<model-viewer 
+  id="mv" 
+  src="assets/burger_tripo-v2.glb" 
+  ios-src="assets/burger_tripo-v2.usdz"
+  alt="Classic Burger" 
+  ar 
+  ar-modes="webxr scene-viewer quick-look" 
+  camera-controls 
+  auto-rotate 
+  environment-image="neutral" 
+  exposure="1" 
+  shadow-intensity="1">
+</model-viewer>
 
       <div class="controls">
         <div class="thumbs" id="thumbs">
